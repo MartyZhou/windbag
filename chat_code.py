@@ -1,14 +1,16 @@
 from langchain_community.vectorstores import Chroma
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
-from langchain.vectorstores.utils import filter_complex_metadata
+# from langchain.vectorstores.utils import filter_complex_metadata
+from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_text_splitters import Language
+from chromadb.config import Settings
 
 class ChatCode:
     chain = None
@@ -31,20 +33,26 @@ class ChatCode:
         loader = GenericLoader.from_filesystem(
             path,
             glob="**/[!.]*",
-            suffixes=[".rb"],
+            suffixes=[".php"],
             parser=LanguageParser(),
+            exclude=["vendor/**"]
         )
 
         text_splitter = RecursiveCharacterTextSplitter.from_language(
-            language=Language.RUBY, chunk_size=1024, chunk_overlap=100)
+            language=Language.PHP,
+            chunk_size=1024,
+            chunk_overlap=100
+        )
 
         chunks = text_splitter.split_documents(loader.load())
         chunks = filter_complex_metadata(chunks)
 
-        vector_store = Chroma.from_documents(documents=chunks, embedding=FastEmbedEmbeddings())
+        vector_store = Chroma.from_documents(
+            documents=chunks, 
+            embedding=FastEmbedEmbeddings())
         retriever = vector_store.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 3,"score_threshold": 0.5}
+            search_kwargs={"k": 3, "score_threshold": 0.5}
         )
 
         self.chain = ({"context": retriever, "question": RunnablePassthrough()}
