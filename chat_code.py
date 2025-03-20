@@ -11,22 +11,37 @@ from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_text_splitters import Language
 from chromadb.config import Settings
+import json
+import re
 
 class ChatCode:
     chain = None
 
     def __init__(self):
-        self.model = ChatOllama(model="codellama")
+        self.model = ChatOllama(model="codellama:13b")
         self.prompt = PromptTemplate.from_template(
-            """
-            <s> [INST] You are an expert programmer for question-answering tasks. Use the following pieces of retrieved context 
-            to answer the question. If you don't know the answer, just say that you don't know. Use three sentences
-            maximum and keep the answer concise. [/INST] </s> 
-            [INST] Question: {question} 
-            Context: {context} 
-            Answer: [/INST]
-            """
-        )
+        """
+        <s> [INST] You are an expert programmer specializing in debugging and troubleshooting code issues. 
+        Your task is to analyze the provided context and answer the given question. 
+        If applicable, provide a solution and the relevant code snippet in the following format:
+
+        Summary:
+        ```php
+        solution
+        ```
+
+        Code Snippet:
+        ```php
+        code
+        ```
+
+        If you are not confident in your answer, respond with "I don't know."
+        [/INST] </s> 
+        [INST] Question: {question} 
+        Context: {context} 
+        Answer: [/INST]
+        """
+    )
 
     def ingest(self, path: str):
         
@@ -35,8 +50,14 @@ class ChatCode:
             glob="**/[!.]*",
             suffixes=[".php"],
             parser=LanguageParser(),
-            exclude=["vendor/**"]
+            exclude=["vendor/**", "storage/**"]
         )
+
+        documents = loader.load()
+        for doc in documents:
+            # print(doc)  # Print the document to see its structure
+            # print(doc.metadata)  # Print the metadata to see its structure
+            doc.metadata["file_path"] = doc.metadata.get("source", "unknown")
 
         text_splitter = RecursiveCharacterTextSplitter.from_language(
             language=Language.PHP,
@@ -44,7 +65,7 @@ class ChatCode:
             chunk_overlap=100
         )
 
-        chunks = text_splitter.split_documents(loader.load())
+        chunks = text_splitter.split_documents(documents)
         chunks = filter_complex_metadata(chunks)
 
         vector_store = Chroma.from_documents(
@@ -52,8 +73,10 @@ class ChatCode:
             embedding=FastEmbedEmbeddings())
         retriever = vector_store.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 3, "score_threshold": 0.5}
+            search_kwargs={"k": 1, "score_threshold": 0.5}
         )
+
+        self.retriever = retriever
 
         self.chain = ({"context": retriever, "question": RunnablePassthrough()}
                       | self.prompt
@@ -62,9 +85,28 @@ class ChatCode:
 
     def ask(self, query: str):
         if not self.chain:
-            return "Please, add a directory first."
+            return json.dumps({"error": "Please, add a directory first."})  # Return JSON error message
 
-        return self.chain.invoke(query)
+        # Invoke the chain and get the result
+        result = self.chain.invoke(query)
+
+        # Retrieve file paths from the retriever's documents
+        file_paths = []
+        if hasattr(self, "retriever") and self.retriever:
+            search_results = self.retriever.get_relevant_documents(query)
+            file_paths = [doc.metadata.get("file_path", "unknown") for doc in search_results]
+
+        code_snippet = None
+        code_match = re.search(r"```php(.*?)```", result, re.DOTALL)
+        if code_match:
+            code_snippet = code_match.group(1).strip()
+
+        # Convert the result to JSON format with file paths
+        return json.dumps({
+            "response": result,
+            "file_paths": file_paths,
+            "code_snippet": code_snippet
+        })
 
     def clear(self):
         self.chain = None

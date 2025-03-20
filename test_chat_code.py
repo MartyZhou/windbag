@@ -16,6 +16,8 @@ os.environ["LANGCHAIN_TRACING_V2"] = ""
 code = ChatCode()
 
 print("Starting ingestion...")
+code.ingest("C:\\code\\semicolons\\sample_code")
+code.ingest("C:\\code\\semicolons\\sample_code\\monolog-loki")
 code.ingest("C:\\code\\semicolons\\laravel-crm")
 print("Ingestion completed.")
 response = code.ask("what language was this code base written in?")
