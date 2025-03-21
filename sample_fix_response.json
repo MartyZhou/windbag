@@ -1,0 +1,56 @@
+{
+    "response": "The error you're seeing is caused by a connection timeout when trying to send the log data to Loki. This can happen if there is a network issue or if Loki is not available at the moment.
+
+To fix this issue, you can try increasing the `CURLOPT_CONNECTTIMEOUT_MS` and `CURLOPT_TIMEOUT_MS` parameters in the `LokiHandler` class. ECTTIMEOUT_MS => 100,
+        CURLOPT_TIMEOUT_MS => 200,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($payload),
+
+    ],
+
+],
+    $this->customCurlOptions
+);
+```
+to:
+```php
+$curlOptions = array_replace(
+    [
+        CURLOPT_CONNECTTIMEOUT_MS => 200, // Increase the connect timeout to 200 milliseconds
+        CURLOPT_TIMEOUT_MS => 300, // Increase the total timeout to 300 milliseconds
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($payload),
+        ],
+    ],
+    $this->customCurlOptions
+);
+```
+By increasing the connect timeout and total timeout, you're giving more time for the connection to be established and for the log data to be sent.
+
+Keep in mind that this is just a temporary solution and may not fix the issue permanently. If you continue to see this error, it may be worth investigating why Loki is unavailable or if there are network issues that need to be addressed.", 
+    "file_paths": [
+        "C:code\\semicolons\\sample_code\\monolog-loki\\src\\main\\php\\Handler\\LokiHandler.php"
+    ],
+    "code_snippet": "$curlOptions = array_replace(
+    [
+        CURLOPT_CONNECTTIMEOUT_MS => 100,
+        CURLOPT_TIMEOUT_MS => 200,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($payload),
+        ],
+    ],
+    $this->customCurlOptions
+);"
+}

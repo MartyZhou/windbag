@@ -25,11 +25,8 @@ class ChatCode:
         If applicable, provide a solution and the relevant code snippet in the following format:
 
         Summary:
-        ```php
-        solution
-        ```
 
-        Code Snippet:
+        Code Snippet for Solution:
         ```php
         code
         ```
