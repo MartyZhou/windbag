@@ -6,6 +6,7 @@ langsmith==0.3.17
 streamlit==1.31.1
 streamlit_chat==0.1.1
 langchain_ollama
+langchain-openai
 chromadb
 tree-sitter==0.21.3
 tree-sitter-languages

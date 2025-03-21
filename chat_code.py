@@ -1,7 +1,10 @@
 import json
 import re
+import os
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -16,8 +19,18 @@ from langchain_text_splitters import Language
 class ChatCode:
     chain = None
 
-    def __init__(self):
-        self.model = ChatOllama(model="codellama")
+    def __init__(self, use_online_model=False):
+        load_dotenv()
+
+        if use_online_model:
+            self.model = ChatOpenAI(
+                model="gpt-4",
+                temperature=0.7,
+                openai_api_key=os.getenv("OPENAI_API_KEY")
+            )
+        else:
+            self.model = ChatOllama(model="codellama")
+
         self.prompt = PromptTemplate.from_template(
         """
         <s> [INST] You are an expert programmer specializing in debugging and troubleshooting code issues. 

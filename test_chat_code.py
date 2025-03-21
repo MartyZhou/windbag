@@ -4,7 +4,7 @@ from chat_code import ChatCode
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 os.environ["LANGCHAIN_TRACING_V2"] = ""
 
-code = ChatCode()
+code = ChatCode(True)
 
 # code.load()
 
