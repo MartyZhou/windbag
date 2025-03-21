@@ -52,7 +52,7 @@ class ChatCode:
             glob="**/[!.]*",
             suffixes=[".php"],
             parser=LanguageParser(),
-            exclude=["**/vendor/**", "**/storage/**"]
+            exclude=["vendor/**", "storage/**"]
         )
 
         documents = loader.load()
