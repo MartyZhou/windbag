@@ -41,8 +41,8 @@ Keep in mind that this is just a temporary solution and may not fix the issue pe
     ],
     "code_snippet": "$curlOptions = array_replace(
     [
-        CURLOPT_CONNECTTIMEOUT_MS => 100,
-        CURLOPT_TIMEOUT_MS => 200,
+        CURLOPT_CONNECTTIMEOUT_MS => 200,
+        CURLOPT_TIMEOUT_MS => 300,
         CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POSTFIELDS => $payload,
