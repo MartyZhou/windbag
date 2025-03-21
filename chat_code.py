@@ -1,18 +1,17 @@
-from langchain_community.vectorstores import Chroma
+import json
+import re
+from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
-# from langchain.vectorstores.utils import filter_complex_metadata
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_text_splitters import Language
-from chromadb.config import Settings
-import json
-import re
+
 
 class ChatCode:
     chain = None
@@ -43,14 +42,14 @@ class ChatCode:
         """
     )
 
-    def ingest(self, path: str):
+    def ingest(self, path: str, persist_directory: str = "chroma_db"):
         
         loader = GenericLoader.from_filesystem(
             path,
             glob="**/[!.]*",
             suffixes=[".php"],
             parser=LanguageParser(),
-            exclude=["vendor/**", "storage/**"]
+            exclude=["**/vendor/**", "**/storage/**"]
         )
 
         documents = loader.load()
@@ -70,10 +69,13 @@ class ChatCode:
 
         vector_store = Chroma.from_documents(
             documents=chunks, 
-            embedding=FastEmbedEmbeddings())
+            embedding=FastEmbedEmbeddings(),
+            persist_directory=persist_directory
+        )
+
         retriever = vector_store.as_retriever(
             search_type="similarity_score_threshold",
-            search_kwargs={"k": 1, "score_threshold": 0.5}
+            search_kwargs={"k": 5, "score_threshold": 0.5}
         )
 
         self.retriever = retriever
@@ -93,7 +95,7 @@ class ChatCode:
         # Retrieve file paths from the retriever's documents
         file_paths = []
         if hasattr(self, "retriever") and self.retriever:
-            search_results = self.retriever.get_relevant_documents(query)
+            search_results = self.retriever.invoke(query)  # Use invoke instead of get_relevant_documents
             file_paths = [doc.metadata.get("file_path", "unknown") for doc in search_results]
 
         code_snippet = None
@@ -110,3 +112,24 @@ class ChatCode:
 
     def clear(self):
         self.chain = None
+
+
+    def load(self, persist_directory: str = "chroma_db"):
+        """Load the RAG pipeline components from the persistent vector store."""
+        # Load the persistent vector store
+        vector_store = Chroma(
+            persist_directory=persist_directory,
+            embedding_function=FastEmbedEmbeddings()
+        )
+        self.retriever = vector_store.as_retriever(
+            search_type="similarity_score_threshold",
+            search_kwargs={"k": 5, "score_threshold": 0.5}
+        )
+
+        # Reconstruct the chain
+        self.chain = ({"context": self.retriever, "question": RunnablePassthrough()}
+                    | self.prompt
+                    | self.model
+                    | StrOutputParser())
+
+        print(f"RAG pipeline loaded from {persist_directory}")
