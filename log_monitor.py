@@ -113,7 +113,7 @@ class LogMonitor:
         github_repo = GitHubRepo(github_token, repo_name)
 
         timestamp = time.strftime("%Y%m%d%H%M%S")
-        branch_name = f"fix/{method_name}"
+        branch_name = f"fix/{method_name.replace(' ', '_').lower()}_{timestamp}"
         commit_message = f"Fix for {method_name}"
         pr_title = f"Fix: {method_name} ({timestamp})"
         pr_body = f"This pull request fixes the issue detected in the method `{method_name}`.\n\nError Message:\n{error_message}\n\nStack Trace:\n{stack_trace}"
