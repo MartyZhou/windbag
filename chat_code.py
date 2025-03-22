@@ -25,15 +25,18 @@ class ChatCode:
         load_dotenv()
 
         if use_online_model:
-            # self.model = ChatOpenAI(
-            #     model="gpt-4",
-            #     temperature=0.7,
-            #     openai_api_key=os.getenv("OPENAI_API_KEY")
-            # )
-            self.model = CustomLlamaModel(
-                api_url=os.getenv("AI_GATEWAY_URL"),  # Store the API URL in the .env file
-                api_key=os.getenv("AI_GATEWAY_API_KEY")  # Store the API key in the .env file
+            self.model = ChatOpenAI(
+                model_name = os.getenv("MODEL_NAME"),
+                # model="gpt-4",
+                temperature = 0.7,
+                max_tokens = 4096,
+                openai_api_base = os.getenv("AI_GATEWAY_URL"),
+                openai_api_key = os.getenv("AI_GATEWAY_API_KEY")
             )
+            # self.model = CustomLlamaModel(
+            #     api_url=os.getenv("AI_GATEWAY_URL"),  # Store the API URL in the .env file
+            #     api_key=os.getenv("AI_GATEWAY_API_KEY")  # Store the API key in the .env file
+            # )
         else:
             self.model = ChatOllama(model="codellama")
 
