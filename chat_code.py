@@ -1,6 +1,7 @@
 import json
 import re
 import os
+import shutil
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
@@ -15,9 +16,6 @@ from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_text_splitters import Language
 
-from custom_llama_model import CustomLlamaModel
-
-
 class ChatCode:
     chain = None
 
@@ -25,6 +23,12 @@ class ChatCode:
         load_dotenv()
 
         if use_online_model:
+            # self.model = ChatOpenAI(
+            #     model="gpt-4",
+            #     temperature=0.7,
+            #     max_tokens=4096,
+            #     api_key=os.getenv("OPENAI_API_KEY")
+            # )
             self.model = ChatOpenAI(
                 model_name = os.getenv("MODEL_NAME"),
                 # model="gpt-4",
@@ -33,10 +37,6 @@ class ChatCode:
                 openai_api_base = os.getenv("AI_GATEWAY_URL"),
                 openai_api_key = os.getenv("AI_GATEWAY_API_KEY")
             )
-            # self.model = CustomLlamaModel(
-            #     api_url=os.getenv("AI_GATEWAY_URL"),  # Store the API URL in the .env file
-            #     api_key=os.getenv("AI_GATEWAY_API_KEY")  # Store the API key in the .env file
-            # )
         else:
             self.model = ChatOllama(model="codellama")
 
@@ -48,12 +48,12 @@ class ChatCode:
 
         Summary:
 
-        Original code snippet:
+        Code Snippet for Solution (limit to the relevant part of the code):
         ```php
         code
         ```
 
-        Code Snippet for Solution:
+        Original code snippet (limit to the relevant part of the code):
         ```php
         code
         ```
@@ -68,6 +68,10 @@ class ChatCode:
 
     def ingest(self, path: str, persist_directory: str = "chroma_db"):
         MAX_TOKENS = 512
+
+        if os.path.exists(persist_directory):
+            shutil.rmtree(persist_directory)
+            print(f"Deleted existing persist directory: {persist_directory}")
 
         loader = GenericLoader.from_filesystem(
             path,
@@ -107,17 +111,28 @@ class ChatCode:
                       | self.prompt
                       | self.model
                       | StrOutputParser())
+        
+        print(f"Ingested {len(documents)} documents from {path}")
 
     def ask(self, query: str):
         if not self.chain:
             return json.dumps({"error": "Please, add a directory first."}) 
         
-        result = self.chain.invoke(query)
-
         file_paths = []
+        full_context = ""
         if hasattr(self, "retriever") and self.retriever:
             search_results = self.retriever.invoke(query)
             file_paths = [doc.metadata.get("file_path", "unknown") for doc in search_results]
+
+        for file_path in file_paths:
+            try:
+                with open(file_path, "r", encoding="utf-8") as file:
+                    full_context += file.read() + "\n"
+            except Exception as e:
+                full_context += f"Error reading file {file_path}: {e}\n"
+
+        result = self.chain.invoke({"context": full_context, "question": query})
+
 
         code_snippet = None
         code_match = re.search(r"```php(.*?)```", result, re.DOTALL)

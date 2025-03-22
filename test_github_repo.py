@@ -5,15 +5,14 @@ from github_repo import GitHubRepo
 load_dotenv()
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO_NAME = "octoobservo/semicolons2025wiki"
+REPO_NAME = "octoobservo/laravel-crm"
 
 repo = GitHubRepo(GITHUB_TOKEN, REPO_NAME)
-repo.create_github_issue("Test Issue 2", "This is a test issue.")
 
-def create_github_issue(title, body):
-    """Create an issue on GitHub."""
-    try:
-        issue = repo.create_issue(title=title, body=body)
-        print(f"Issue created: {issue.html_url}")
-    except Exception as e:
-        print(f"Failed to create issue: {e}")
+branch_name = "feature/update-file"
+file_path = "C:\\code\\semicolons\\code-for-rag\\laravel-crm\\packages\\Webkul\\Activity\\src\\Repositories\\ActivityRepository.php"
+commit_message = "Update file with new content"
+pr_title = "Update file.php"
+pr_body = "This pull request updates file.php with new content."
+
+repo.commit_and_create_pr(branch_name, file_path, commit_message, pr_title, pr_body)
