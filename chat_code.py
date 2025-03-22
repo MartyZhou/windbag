@@ -15,6 +15,8 @@ from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_text_splitters import Language
 
+from custom_llama_model import CustomLlamaModel
+
 
 class ChatCode:
     chain = None
@@ -23,10 +25,14 @@ class ChatCode:
         load_dotenv()
 
         if use_online_model:
-            self.model = ChatOpenAI(
-                model="gpt-4",
-                temperature=0.7,
-                openai_api_key=os.getenv("OPENAI_API_KEY")
+            # self.model = ChatOpenAI(
+            #     model="gpt-4",
+            #     temperature=0.7,
+            #     openai_api_key=os.getenv("OPENAI_API_KEY")
+            # )
+            self.model = CustomLlamaModel(
+                api_url=os.getenv("AI_GATEWAY_URL"),  # Store the API URL in the .env file
+                api_key=os.getenv("AI_GATEWAY_API_KEY")  # Store the API key in the .env file
             )
         else:
             self.model = ChatOllama(model="codellama")
